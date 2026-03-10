@@ -54,7 +54,7 @@ def generate_summary(data: dict, api_key: str) -> str:
 
     # On essaie gemini-1.5-flash en priorité (limites gratuites plus souples),
     # puis gemini-2.0-flash en fallback
-    models = ["gemini-1.5-flash", "gemini-2.0-flash"]
+    models = ["gemini-2.0-flash-lite", "gemini-2.0-flash"]
     payload = {
         "contents": [{"parts": [{"text": prompt}]}],
         "generationConfig": {"maxOutputTokens": 600, "temperature": 0.4},
