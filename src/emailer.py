@@ -85,7 +85,10 @@ def send_email(summary: str, massifs: list[str], config: dict) -> None:
     msg.attach(text_part)
     msg.attach(html_part)
 
-    with smtplib.SMTP_SSL(config["smtp_host"], int(config["smtp_port"])) as server:
+    with smtplib.SMTP(config["smtp_host"], int(config["smtp_port"])) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
         server.login(config["smtp_user"], config["smtp_password"])
         server.sendmail(
             config["from_email"],
