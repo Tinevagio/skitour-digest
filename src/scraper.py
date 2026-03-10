@@ -1,123 +1,94 @@
 import requests
-from bs4 import BeautifulSoup
-from datetime import datetime, timedelta
-import re
+from datetime import datetime
 
-BASE_URL = "https://www.skitour.fr"
+BASE_URL = "https://skitour.fr"
 
-# Identifiants de massifs skitour (à adapter selon ta région)
-# Exemples : 1=Belledonne, 2=Chartreuse, 3=Vercors, 4=Écrins, 5=Mercantour, etc.
-# Voir https://www.skitour.fr/sorties/
+# Liste des massifs connus (source : https://skitour.fr/api/massifs)
+# Pour la liste complète, appelle fetch_massifs() avec ta clé API.
 MASSIFS = {
-    1: "Belledonne",
-    4: "Écrins",
-    # Ajoute tes massifs ici
+    # --- Isère ---
+    1:  "Belledonne",
+    2:  "Chartreuse",
+    3:  "Vercors",
+    # --- Savoie / Haute-Savoie ---
+    4:  "Bauges",
+    5:  "Mont-Blanc",
+    # --- Hautes-Alpes ---
+    7:  "Queyras",
+    # --- Alpes Maritimes ---
+    6:  "Mercantour",
 }
 
-HEADERS = {
-    "User-Agent": "Mozilla/5.0 (compatible; SkitourDigest/1.0; contact: ton@email.com)"
-}
+
+def _headers(api_key: str) -> dict:
+    return {"cle": api_key, "User-Agent": "SkitourDigest/2.0"}
 
 
-def fetch_recent_sorties(massif_id: int, days_back: int = 2) -> list[dict]:
-    """Scrape les sorties récentes d'un massif."""
-    url = f"{BASE_URL}/sorties/liste/?massif={massif_id}"
-    resp = requests.get(url, headers=HEADERS, timeout=15)
+def fetch_massifs(api_key: str) -> list[dict]:
+    """Récupère la liste complète des massifs (utile pour trouver les IDs)."""
+    resp = requests.get(f"{BASE_URL}/api/massifs", headers=_headers(api_key), timeout=15)
     resp.raise_for_status()
+    return resp.json()
 
-    soup = BeautifulSoup(resp.text, "html.parser")
-    sorties = []
-    cutoff = datetime.now() - timedelta(days=days_back)
 
-    rows = soup.select("table.liste tr")
-    for row in rows:
-        cells = row.find_all("td")
-        if len(cells) < 4:
-            continue
+def fetch_recent_sorties(massif_id: int, api_key: str, days: int = 2) -> list[dict]:
+    """Récupère les sorties récentes d'un massif via l'API officielle."""
+    params = {"m": massif_id, "j": days, "c": 1, "l": 10}
+    resp = requests.get(f"{BASE_URL}/api/sorties", headers=_headers(api_key), params=params, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
 
-        # Date
-        date_text = cells[0].get_text(strip=True)
-        try:
-            date = datetime.strptime(date_text, "%d/%m/%Y")
-        except ValueError:
-            continue
-        if date < cutoff:
-            continue
+    sorties_raw = data.get("sorties", data) if isinstance(data, dict) else data
 
-        # Titre + lien
-        title_cell = cells[1]
-        link_tag = title_cell.find("a")
-        title = link_tag.get_text(strip=True) if link_tag else title_cell.get_text(strip=True)
-        link = BASE_URL + link_tag["href"] if link_tag and link_tag.get("href") else ""
+    result = []
+    for s in sorties_raw:
+        auteur = s.get("auteur", "")
+        if isinstance(auteur, dict):
+            auteur = auteur.get("pseudo", "")
+        result.append({
+            "id":       s.get("id", ""),
+            "date":     s.get("date", ""),
+            "title":    s.get("titre", s.get("title", "")),
+            "massif":   MASSIFS.get(massif_id, f"Massif {massif_id}"),
+            "cotation": s.get("dif_ski", ""),
+            "denivele": s.get("denivele", ""),
+            "auteur":   auteur,
+            "resume":   s.get("resume", s.get("texte", ""))[:600],
+            "link":     f"{BASE_URL}/sorties/{s.get('id', '')}",
+        })
+    return result
 
-        # Cotation / infos
-        cotation = cells[2].get_text(strip=True) if len(cells) > 2 else ""
-        auteur = cells[3].get_text(strip=True) if len(cells) > 3 else ""
 
-        sortie = {
-            "date": date.strftime("%d/%m/%Y"),
-            "title": title,
-            "link": link,
-            "cotation": cotation,
+def fetch_conditions_nivo(massif_id: int, api_key: str) -> list[dict]:
+    """Récupère les conditions récentes du massif."""
+    params = {"m": massif_id}
+    resp = requests.get(f"{BASE_URL}/api/conditions", headers=_headers(api_key), params=params, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+
+    conditions_raw = data.get("conditions", data) if isinstance(data, dict) else data
+
+    result = []
+    for c in conditions_raw[:5]:
+        auteur = c.get("auteur", "")
+        if isinstance(auteur, dict):
+            auteur = auteur.get("pseudo", "")
+        result.append({
+            "date":   c.get("date", ""),
+            "texte":  c.get("texte", c.get("resume", ""))[:500],
             "auteur": auteur,
-            "massif": MASSIFS.get(massif_id, f"Massif {massif_id}"),
-        }
-
-        # Récupère le détail si on a un lien
-        if link:
-            sortie["detail"] = fetch_sortie_detail(link)
-
-        sorties.append(sortie)
-
-    return sorties
+        })
+    return result
 
 
-def fetch_sortie_detail(url: str) -> str:
-    """Récupère le texte de description d'une sortie."""
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Le compte-rendu est généralement dans un div avec classe "cr" ou "texte"
-        for selector in ["div.cr", "div.texte", "div#cr", "article"]:
-            block = soup.select_one(selector)
-            if block:
-                text = block.get_text(separator=" ", strip=True)
-                # Limiter à 800 chars pour éviter les prompts trop longs
-                return text[:800]
-    except Exception:
-        pass
-    return ""
-
-
-def fetch_conditions_nivo(massif_id: int) -> str:
-    """Récupère les dernières conditions nivologiques du massif."""
-    url = f"{BASE_URL}/conditions/?massif={massif_id}"
-    try:
-        resp = requests.get(url, headers=HEADERS, timeout=15)
-        resp.raise_for_status()
-        soup = BeautifulSoup(resp.text, "html.parser")
-
-        # Cherche le dernier bulletin de conditions
-        for selector in ["div.conditions", "div.bulletin", "div.texte", "article"]:
-            block = soup.select_one(selector)
-            if block:
-                text = block.get_text(separator=" ", strip=True)
-                return text[:1000]
-    except Exception:
-        pass
-    return ""
-
-
-def collect_all_data(massif_ids: list[int]) -> dict:
+def collect_all_data(massif_ids: list[int], api_key: str) -> dict:
     """Collecte toutes les données pour les massifs demandés."""
     data = {}
     for mid in massif_ids:
         name = MASSIFS.get(mid, f"Massif {mid}")
-        print(f"  → Scraping {name}...")
+        print(f"  → {name}...")
         data[name] = {
-            "sorties": fetch_recent_sorties(mid),
-            "conditions": fetch_conditions_nivo(mid),
+            "sorties":    fetch_recent_sorties(mid, api_key),
+            "conditions": fetch_conditions_nivo(mid, api_key),
         }
     return data
