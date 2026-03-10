@@ -24,7 +24,7 @@ def main():
 
     # --- Config depuis les variables d'environnement ---
     skitour_api_key = get_env("SKITOUR_API_KEY")
-    gemini_api_key  = get_env("GEMINI_API_KEY")
+    groq_api_key  = get_env("GROQ_API_KEY")
 
     smtp_config = {
         "smtp_host":     get_env("SMTP_HOST"),
@@ -51,8 +51,8 @@ def main():
         summary = ("Aucune sortie récente trouvée sur skitour.fr pour les massifs surveillés. "
                    "Pas de conditions à rapporter aujourd'hui.")
     else:
-        print("🤖 Génération du résumé (Gemini)...")
-        summary = generate_summary(data, gemini_api_key)
+        print("🤖 Génération du résumé (Groq)...")
+        summary = generate_summary(data, groq_api_key)
         print(f"  Résumé : {len(summary.split())} mots")
 
     print("📧 Envoi de l'email...")
