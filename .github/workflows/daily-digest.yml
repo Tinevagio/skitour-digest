@@ -1,0 +1,41 @@
+name: Skitour Daily Digest
+
+on:
+  schedule:
+    # Tous les matins à 7h00 heure Paris (6h UTC en hiver, 5h UTC en été)
+    # Ajuste selon la saison ou utilise une heure fixe UTC
+    - cron: "0 6 * * *"
+
+  # Permet de lancer manuellement depuis l'onglet Actions de GitHub
+  workflow_dispatch:
+
+jobs:
+  send-digest:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Skitour Digest
+        working-directory: src
+        env:
+          GEMINI_API_KEY:    ${{ secrets.GEMINI_API_KEY }}
+          SMTP_HOST:         ${{ secrets.SMTP_HOST }}
+          SMTP_PORT:         ${{ secrets.SMTP_PORT }}
+          SMTP_USER:         ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD:     ${{ secrets.SMTP_PASSWORD }}
+          FROM_EMAIL:        ${{ secrets.FROM_EMAIL }}
+          TO_EMAILS:         ${{ secrets.TO_EMAILS }}
+          MASSIF_IDS:        ${{ vars.MASSIF_IDS }}
+        run: python main.py
