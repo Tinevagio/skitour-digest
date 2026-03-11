@@ -8,30 +8,30 @@ BASE_URL = "https://skitour.fr"
 # Valeur = dict {id: nom}
 MASSIF_GROUPS = {
     "Haute-Savoie": {
-        10: "Bornes - Aravis",
-        11: "Chablais - Faucigny",
-        12: "Haut Giffre - Aiguilles Rouges",
-        13: "Mont Blanc",
+        22: "Bornes - Aravis",
+        23: "Chablais - Faucigny",
+        24: "Haut Giffre - Aiguilles Rouges",
+        25: "Mont Blanc",
     },
     "Savoie": {
-        14: "Alpes Grées N",
+        17: "Alpes Grées N",
         15: "Alpes Grées S",
-        4:  "Bauges",
-        16: "Beaufortain",
-        17: "Lauzière - Cheval Noir",
+        20:  "Bauges",
+        21: "Beaufortain",
+        19: "Lauzière - Cheval Noir",
         18: "Vanoise",
     },
     "Isère": {
-        1:  "Belledonne",
-        2:  "Chartreuse",
-        19: "Grandes Rousses - Arves",
-        20: "Taillefer - Matheysine",
-        3:  "Vercors",
+        12:  "Belledonne",
+        11:  "Chartreuse",
+        13: "Grandes Rousses - Arves",
+        9: "Taillefer - Matheysine",
+        10:  "Vercors",
     },
     "Hautes-Alpes": {
-        21: "Cerces - Thabor - Mont Cenis",
-        22: "Devoluy",
-        23: "Ecrins",
+        14: "Cerces - Thabor - Mont Cenis",
+        8: "Devoluy",
+        7: "Ecrins",
     },
 }
 
