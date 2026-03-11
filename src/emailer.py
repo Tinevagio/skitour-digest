@@ -64,13 +64,13 @@ def build_html_email(summary: str, massifs: list[str]) -> str:
 </html>"""
 
 
-def send_email(summary: str, massifs: list[str], config: dict) -> None:
+def send_email(summary: str, massifs: list[str], config: dict, group_name: str = "") -> None:
     """
     Envoie l'email via SMTP.
     config doit contenir : smtp_host, smtp_port, smtp_user, smtp_password, from_email, to_emails
     """
     today = datetime.now().strftime("%d/%m/%Y")
-    subject = f"🎿 Skitour Digest — {today}"
+    subject = f"🎿 Skitour Digest {group_name} — {today}" if group_name else f"🎿 Skitour Digest — {today}"
 
     html_body = build_html_email(summary, massifs)
 

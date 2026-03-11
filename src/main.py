@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
 Skitour Daily Digest
-API skitour.fr → résumé IA → email quotidien
+API skitour.fr → résumé IA → un email par groupe de massifs
 """
 
 import os
 import sys
-from scraper import collect_all_data, MASSIFS
+from scraper import collect_group_data, get_groups_for_ids, MASSIFS
 from summarizer import generate_summary
 from emailer import send_email
 
@@ -22,9 +22,8 @@ def get_env(key: str, required: bool = True) -> str:
 def main():
     print("🎿 Skitour Digest — démarrage")
 
-    # --- Config depuis les variables d'environnement ---
     skitour_api_key = get_env("SKITOUR_API_KEY")
-    groq_api_key  = get_env("GROQ_API_KEY")
+    groq_api_key    = get_env("GROQ_API_KEY")
 
     smtp_config = {
         "smtp_host":     get_env("SMTP_HOST"),
@@ -35,31 +34,43 @@ def main():
         "to_emails":     [e.strip() for e in get_env("TO_EMAILS").split(",")],
     }
 
-    # IDs des massifs (variables GitHub, ex: "1,4")
-    massif_ids_raw = get_env("MASSIF_IDS", required=False) or "1,4"
+    massif_ids_raw = os.environ.get("MASSIF_IDS", "").strip()
+    print(f"  MASSIF_IDS lu : '{massif_ids_raw}'")
+    if not massif_ids_raw:
+        massif_ids_raw = "1,4"
+        print("  ⚠️  MASSIF_IDS vide, défaut : 1,4")
+
     massif_ids = [int(x.strip()) for x in massif_ids_raw.split(",") if x.strip().isdigit()]
-    print(f"  Massifs : {[MASSIFS.get(m, str(m)) for m in massif_ids]}")
 
-    # --- API skitour ---
-    print("📡 Récupération via API skitour.fr...")
-    data = collect_all_data(massif_ids, skitour_api_key)
+    # Groupe les massifs par région
+    groups = get_groups_for_ids(massif_ids)
+    print(f"  Groupes : {list(groups.keys())}")
 
-    total_sorties = sum(len(v["sorties"]) for v in data.values())
-    print(f"  {total_sorties} sortie(s) récente(s) trouvée(s)")
+    emails_sent = 0
 
-    if total_sorties == 0:
-        summary = ("Aucune sortie récente trouvée sur skitour.fr pour les massifs surveillés. "
-                   "Pas de conditions à rapporter aujourd'hui.")
-    else:
-        print("🤖 Génération du résumé (Groq)...")
-        summary = generate_summary(data, groq_api_key)
-        print(f"  Résumé : {len(summary.split())} mots")
+    for group_name, group_ids in groups.items():
+        print(f"\n📍 Groupe : {group_name} ({[MASSIFS.get(m, str(m)) for m in group_ids]})")
 
-    print("📧 Envoi de l'email...")
-    massif_names = [MASSIFS.get(m, str(m)) for m in massif_ids]
-    send_email(summary, massif_names, smtp_config)
+        print("  📡 Récupération API skitour...")
+        data = collect_group_data(group_ids, skitour_api_key)
 
-    print("✅ Digest envoyé avec succès !")
+        total = sum(len(v["sorties"]) for v in data.values())
+        print(f"  {total} sortie(s) trouvée(s)")
+
+        if total == 0:
+            summary = (f"Aucune sortie récente trouvée sur skitour.fr "
+                       f"pour les massifs de {group_name}.")
+        else:
+            print("  🤖 Génération du résumé (Groq)...")
+            summary = generate_summary(data, groq_api_key)
+            print(f"  Résumé : {len(summary.split())} mots")
+
+        print("  📧 Envoi de l'email...")
+        massif_names = [MASSIFS.get(m, str(m)) for m in group_ids]
+        send_email(summary, massif_names, smtp_config, group_name)
+        emails_sent += 1
+
+    print(f"\n✅ {emails_sent} email(s) envoyé(s) avec succès !")
 
 
 if __name__ == "__main__":
