@@ -4,14 +4,26 @@ from datetime import datetime
 
 BASE_URL = "https://skitour.fr"
 
+
 MASSIFS = {
-    1: "Belledonne",
-    2: "Chartreuse",
-    3: "Vercors",
-    4: "Bauges",
-    5: "Mont-Blanc",
-    6: "Mercantour",
-    7: "Queyras",
+    22:"Bornes - Aravis (Haute Savoie)",
+    23:"Chablais - Faucigny (Haute Savoie)",
+    24:"Haut Giffre - Aiguilles Rouges (Haute Savoie)",
+    25:"Mont Blanc (Haute Savoie)",
+    17:"Alpes Grées N (Savoie)",
+    15:"Alpes Grées S (Savoie)",
+    20:"Bauges (Savoie)",
+    21:"Beaufortain (Savoie)",
+    19:"Lauzière - Cheval Noir (Savoie)",
+    18:"Vanoise (Savoie)",
+    12:"Belledonne (Isère)",
+    11:"Chartreuse (Isère)",
+    13:"Grandes Rousses - Arves (Isère)",
+    9:"Taillefer - Matheysine (Isère)",
+    10:"Vercors (Isère)",
+    14:"Cerces - Thabor - Mont Cenis (Hautes Alpes)",
+    8:"Devoluy (Hautes Alpes)",
+    7:"Ecrins (Hautes Alpes)",
 }
 
 
