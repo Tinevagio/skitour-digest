@@ -6,6 +6,7 @@ API skitour.fr → résumé IA → un email par groupe de massifs
 
 import os
 import sys
+import time
 from scraper import collect_group_data, get_groups_for_ids, MASSIFS
 from summarizer import generate_summary
 from emailer import send_email
@@ -69,6 +70,9 @@ def main():
         massif_names = [MASSIFS.get(m, str(m)) for m in group_ids]
         send_email(summary, massif_names, smtp_config, group_name)
         emails_sent += 1
+        if emails_sent < len(groups):
+            print("  ⏳ Pause 20s (rate limit Groq)...")
+            time.sleep(20)
 
     print(f"\n✅ {emails_sent} email(s) envoyé(s) avec succès !")
 
