@@ -2,7 +2,7 @@ name: Skitour Daily Digest
 
 on:
   schedule:
-    - cron: "30 15 * * *"   # 7h Paris (hiver UTC+1) — ajuste si besoin
+    - cron: "31 14 * * *"   # 7h Paris (hiver UTC+1) — ajuste si besoin
   workflow_dispatch:       # Lancement manuel depuis l'onglet Actions
 
 jobs:
